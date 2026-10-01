@@ -95,6 +95,14 @@ The normal installation includes a broader rescue toolkit.
 - LVM
 - Linux software RAID / `mdadm`
 
+#### Virtual disk and VM image tools
+
+- `qemu-utils`
+  - `qemu-img` for inspecting, converting and working with virtual disk images
+  - `qemu-nbd` for exposing supported virtual disk images as Linux block devices
+
+This is particularly useful when recovering files or configuration from VM images such as QCOW2, VMDK and other QEMU-supported formats.
+
 #### Boot and EFI
 
 - `efibootmgr`
@@ -292,6 +300,30 @@ sudo smartctl -a /dev/sdX
 sudo nvme list
 sudo nvme smart-log /dev/nvme0
 ```
+
+### Virtual disk images
+
+Inspect an image:
+
+```bash
+qemu-img info disk.qcow2
+```
+
+Attach a virtual disk image read-only through NBD:
+
+```bash
+sudo modprobe nbd max_part=16
+sudo qemu-nbd --read-only --connect=/dev/nbd0 disk.qcow2
+lsblk /dev/nbd0
+```
+
+When finished:
+
+```bash
+sudo qemu-nbd --disconnect /dev/nbd0
+```
+
+Using `--read-only` is recommended when examining recovery images to avoid accidental modification.
 
 ### Hardware
 
