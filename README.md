@@ -25,9 +25,13 @@ Zsh is configured as the target user's default shell.
 
 A small tmux configuration is created when `~/.tmux.conf` does not already exist, enabling:
 
+- `Ctrl-A` as the tmux prefix instead of the default `Ctrl-B`
 - mouse support
 - 100,000-line scrollback
-- 256-colour terminal support
+- portable 256-colour terminal support
+- ACS line drawing to avoid broken or dashed pane separators on some live-console, terminal and font combinations
+
+Press `Ctrl-A Ctrl-A` to send a literal `Ctrl-A` through to the application running inside the active pane.
 
 Existing tmux configuration is left untouched.
 
@@ -42,6 +46,35 @@ It deliberately does **not**:
 - modify `sshd_config`
 
 SSH authentication therefore remains governed by the Linux distribution's existing configuration.
+
+### tmux
+
+The generated tmux configuration uses `Ctrl-A` as its command prefix:
+
+```text
+Ctrl-A c       create a new window
+Ctrl-A %       split vertically
+Ctrl-A "       split horizontally
+Ctrl-A d       detach
+Ctrl-A [       enter copy/scrollback mode
+Ctrl-A ?       show key bindings
+Ctrl-A Ctrl-A  send Ctrl-A to the active application
+```
+
+The configuration uses:
+
+```tmux
+set -g default-terminal "screen-256color"
+set -as terminal-overrides ",*:U8=0"
+```
+
+The second setting makes tmux use terminal ACS characters for pane borders instead of relying on UTF-8 line-drawing glyphs. This improves border rendering on temporary/live Linux environments where terminal capabilities or fonts may differ.
+
+If tmux is already running after changing the file, reload it with:
+
+```bash
+tmux source-file ~/.tmux.conf
+```
 
 ### Tailscale
 
