@@ -155,6 +155,9 @@ RESCUE_PACKAGES=(
     lvm2
     mdadm
 
+    # Virtual disk / VM image tools
+    qemu-utils
+
     # Boot / EFI
     efibootmgr
     mokutil
@@ -371,7 +374,8 @@ echo
 if [[ "$INSTALL_RESCUE_TOOLS" == true ]]; then
     echo "Recovery tools installed:"
     echo "  ddrescue, testdisk, smartctl, nvme, gdisk, parted,"
-    echo "  cryptsetup, LVM, mdadm and common filesystem tools."
+    echo "  qemu-utils (qemu-img/qemu-nbd), cryptsetup, LVM, mdadm"
+    echo "  and common filesystem tools."
     echo
 fi
 
