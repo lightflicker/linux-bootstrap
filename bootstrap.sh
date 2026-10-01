@@ -248,14 +248,24 @@ if [[ ! -e "$TMUX_CONF" ]]; then
     cat <<'EOF' | "${SUDO[@]}" tee "$TMUX_CONF" >/dev/null
 # Rescue workstation defaults
 
+# Use Ctrl-A as the tmux prefix instead of Ctrl-B.
+# Press Ctrl-A twice to send Ctrl-A to the application inside the pane.
+unbind C-b
+set -g prefix C-a
+bind C-a send-prefix
+
 # Large scrollback
 set -g history-limit 100000
 
 # Mouse scrolling / pane selection
 set -g mouse on
 
-# More sensible terminal capabilities
-set -g default-terminal "tmux-256color"
+# Portable 256-colour TERM for live/rescue environments.
+set -g default-terminal "screen-256color"
+
+# Force ACS line drawing rather than UTF-8 line characters.
+# This avoids broken/dashed pane borders with some terminal/font combinations.
+set -as terminal-overrides ",*:U8=0"
 EOF
 
     "${SUDO[@]}" chown "$TARGET_USER":"$(id -gn "$TARGET_USER")" "$TMUX_CONF"
