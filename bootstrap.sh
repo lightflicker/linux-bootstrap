@@ -244,153 +244,9 @@ section "Configuring tmux"
 
 TMUX_CONF="$TARGET_HOME/.tmux.conf"
 
-if [[ ! -e "$TMUX_CONF" ]] || grep -q '^# Rescue workstation defaults
-# Rescue workstation defaults
-
-# Use Ctrl-A as the tmux prefix instead of Ctrl-B.
-# Press Ctrl-A twice to send Ctrl-A to the application inside the pane.
-unbind C-b
-set -g prefix C-a
-bind C-a send-prefix
-
-# Large scrollback
-set -g history-limit 100000
-
-# Mouse scrolling / pane selection
-set -g mouse on
-
-# Portable 256-colour TERM for live/rescue environments.
-set -g default-terminal "screen-256color"
-
-# Force ACS line drawing rather than UTF-8 line characters.
-# This avoids broken/dashed pane borders with some terminal/font combinations.
-set -as terminal-overrides ",*:U8=0"
-EOF
-
-    "${SUDO[@]}" chown "$TARGET_USER":"$(id -gn "$TARGET_USER")" "$TMUX_CONF"
-else
-    echo "Existing custom .tmux.conf retained."
-fi
-
-# ---------------------------------------------------------------------------
-# Tailscale
-# ---------------------------------------------------------------------------
-
-if [[ "$INSTALL_TAILSCALE" == true ]]; then
-
-    section "Installing Tailscale"
-
-    if ! command -v tailscale >/dev/null 2>&1; then
-
-        TS_INSTALLER="$(mktemp)"
-
-        curl -fsSL https://tailscale.com/install.sh -o "$TS_INSTALLER"
-
-        "${SUDO[@]}" sh "$TS_INSTALLER"
-
-        rm -f "$TS_INSTALLER"
-    else
-        echo "Tailscale already installed."
-    fi
-
-    if command -v systemctl >/dev/null 2>&1; then
-        "${SUDO[@]}" systemctl enable --now tailscaled
-    fi
-
-    # -----------------------------------------------------------------------
-    # Authentication
-    # -----------------------------------------------------------------------
-
-    if [[ -z "${TS_AUTHKEY:-}" ]] && [[ -t 0 ]]; then
-
-        echo
-        echo "For a truly temporary node, use an EPHEMERAL Tailscale auth key."
-        echo
-        read -rsp \
-            "Paste ephemeral Tailscale auth key (Enter for browser login): " \
-            TS_AUTHKEY
-        echo
-    fi
-
-    TS_OPTIONS=(
-        "--hostname=$TS_HOSTNAME"
-    )
-
-    if [[ "$ENABLE_TAILSCALE_SSH" == true ]]; then
-        TS_OPTIONS+=("--ssh")
-    fi
-
-    if [[ -n "${TS_AUTHKEY:-}" ]]; then
-
-        section "Connecting ephemeral Tailscale node"
-
-        "${SUDO[@]}" tailscale up \
-            --auth-key="$TS_AUTHKEY" \
-            "${TS_OPTIONS[@]}"
-
-        # Remove credential from this process environment.
-        unset TS_AUTHKEY
-
-    else
-
-        section "Connecting Tailscale interactively"
-
-        "${SUDO[@]}" tailscale up "${TS_OPTIONS[@]}"
-    fi
-fi
-
-# ---------------------------------------------------------------------------
-# Final status
-# ---------------------------------------------------------------------------
-
-section "Bootstrap complete"
-
-echo
-printf "User:             %s\n" "$TARGET_USER"
-printf "Default shell:    %s\n" "$(getent passwd "$TARGET_USER" | cut -d: -f7)"
-
-if command -v systemctl >/dev/null 2>&1; then
-    printf "OpenSSH:          %s\n" \
-        "$(systemctl is-active ssh 2>/dev/null || echo unknown)"
-fi
-
-echo
-echo "Network addresses:"
-hostname -I 2>/dev/null || true
-
-if command -v tailscale >/dev/null 2>&1; then
-    TS_IP="$(tailscale ip -4 2>/dev/null || true)"
-
-    if [[ -n "$TS_IP" ]]; then
-        echo
-        echo "Tailscale:"
-        printf "  Hostname:       %s\n" "$TS_HOSTNAME"
-        printf "  IPv4:           %s\n" "$TS_IP"
-    fi
-fi
-
-echo
-echo "Useful commands:"
-echo "  tmux"
-echo "  lsblk -f"
-echo "  sudo fdisk -l"
-echo "  sudo smartctl --scan"
-echo "  sudo nvme list"
-echo "  sudo lshw -short"
-echo "  tailscale status"
-echo
-
-if [[ "$INSTALL_RESCUE_TOOLS" == true ]]; then
-    echo "Recovery tools installed:"
-    echo "  ddrescue, testdisk, smartctl, nvme, gdisk, parted,"
-    echo "  qemu-utils (qemu-img/qemu-nbd), cryptsetup, LVM, mdadm"
-    echo "  and common filesystem tools."
-    echo
-fi
-
-echo "Start a fresh zsh session with:"
-echo "  exec zsh -l"
-echo "$TMUX_CONF" 2>/dev/null; then
+# Refresh a tmux configuration previously created by this bootstrap.
+# Leave an unrelated/custom tmux configuration untouched.
+if [[ ! -e "$TMUX_CONF" ]] || grep -q '^# Rescue workstation defaults$' "$TMUX_CONF" 2>/dev/null; then
     cat <<'EOF' | "${SUDO[@]}" tee "$TMUX_CONF" >/dev/null
 # Rescue workstation defaults
 
@@ -416,7 +272,7 @@ EOF
 
     "${SUDO[@]}" chown "$TARGET_USER":"$(id -gn "$TARGET_USER")" "$TMUX_CONF"
 else
-    echo "Existing .tmux.conf retained."
+    echo "Existing custom .tmux.conf retained."
 fi
 
 # ---------------------------------------------------------------------------
